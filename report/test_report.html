@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>go-test-report</title>
+    <style type="text/css">
+        body {
+            font-family: sans-serif;
+            background-color: #f3f3f3;
+            border-top: 2px #dee6e8 solid;
+            margin: 0;
+        }
+
+        div.pageHeader span.projectTitle {
+            font-family: serif;
+            font-size: 2em;
+            padding-left: 56px;
+            padding-top: 80px;
+            display: block;
+            color: #a5a5a5;
+            text-shadow: 0 -1px 1px white;
+        }
+
+        div.pageHeader div.testStats {
+            position: absolute;
+            top: 7px;
+            right: 52px;
+            font-size: 0.8em;
+            color: #a2a2a2;
+        }
+
+        div.pageHeader div.testStats span.indicator {
+            font-size: 2em;
+            position: relative;
+            top: 5px;
+            text-shadow: 0 1px 0 white;
+        }
+
+        div.pageHeader div.testStats span strong {
+            margin-right: 16px;
+        }
+
+        div.pageHeader div.testStats span.total {
+            border-right: 1px #afafaf dotted;
+            background: #8298af;
+        }
+
+        div.pageHeader div.testStats span.passed {
+            border-right: 1px #afafaf dotted;
+            background: #6fca83;
+        }
+
+        div.pageHeader div.testStats span.skipped {
+            background: #bababa;
+        }
+
+        div.pageHeader div.testStats span.failed {
+            background: #ff7676;
+        }
+
+        div.pageHeader div.testStats span {
+            margin-right: 1px;
+            height: 55px;
+            padding: 20px 8px 18px;
+            color: white;
+        }
+
+        div.pageHeader .testGroupsTitle {
+            margin: 16px 32px 8px 40px;
+            font-size: 0.9em;
+            color: darkgrey;
+            display: inline-block;
+        }
+
+        div.pageHeader .testExecutionDate {
+            display: inline-block;
+            position: absolute;
+            right: 10px;
+            margin: 14px 32px 8px 40px;
+            color: #9e9e9e;
+            font-size: 0.9em;
+        }
+
+        .testReportContainer {
+            padding: 0 32px 32px 32px;
+        }
+
+        .cardContainer {
+            padding: 16px 16px 16px;
+            box-shadow: 0 4px 4px #d4d4d4;
+            background-color: white;
+        }
+
+        #testResults {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .testResultGroup {
+            width: 24px;
+            height: 24px;
+            background-color: #43c143;
+            margin-left: 1px;
+            margin-bottom: 1px;
+            box-sizing: border-box;
+        }
+
+        .testResultGroup.selected {
+            border: 1px white solid;
+            background-color: black !important;
+        }
+
+        .testResultGroup.skipped {
+            border: 2px gray solid;
+        }
+
+        .testResultGroup.failed {
+            background-color: red;
+        }
+
+        .cardContainer.testGroupList,
+        .cardContainer.testDetail {
+            margin-top: 16px;
+            padding: 16px;
+        }
+
+        .cardContainer.testGroupList {
+            color: #9c9c9c;
+            padding: 0;
+        }
+
+        .cardContainer.testGroupList .testGroupRow {
+            cursor: default;
+            border-bottom: 1px #dadada dotted;
+        }
+
+        .cardContainer.testGroupList .testGroupRow span.testStatus {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #139e13;
+            pointer-events: none;
+            display: inline-block;
+            overflow: hidden;
+            float: left;
+            padding-top: 10px;
+            padding-left: 20px;
+            padding-right: 12px;
+        }
+
+        .cardContainer.testGroupList .testGroupRow span.testStatus.skipped {
+            color: gray;
+        }
+
+        .cardContainer.testGroupList .testGroupRow span.testStatus.failed {
+            color: red;
+        }
+
+        .cardContainer.testGroupList .testGroupRow span.testTitle {
+            font-size: 0.9em;
+            padding: 12px 0 10px;
+            display: inline-block;
+            pointer-events: none;
+            color: #525252;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            width: calc(100% - 110px);
+        }
+
+        .cardContainer.testGroupList .testGroupRow span.testDuration {
+            pointer-events: none;
+        }
+
+        .cardContainer.testGroupList .testGroupRow {
+            position: relative;
+            border-left: 4px #43c143 solid;
+        }
+
+        .cardContainer.testGroupList .testGroupRow.skipped {
+            color: gray;
+            border-left: 4px gray solid;
+        }
+
+        .cardContainer.testGroupList .testGroupRow.failed {
+            color: red;
+            border-left: 4px red solid;
+        }
+
+        .cardContainer.testGroupList .testGroupRow:hover {
+            background-color: #fffaea;
+            transition: 0.250s;
+        }
+
+        .cardContainer .testOutput {
+            padding: 8px 16px 24px 16px;
+        }
+
+        .cardContainer .console {
+            display: block;
+            font-family: monospace;
+            padding: 10px;
+            background-color: #424242;
+            color: #1aff00;
+            border-bottom: 1px #1aff00 dotted;
+            overflow: auto;
+            font-size: 1.1em;
+        }
+
+        .cardContainer .testOutput .testDetail {
+            border-bottom: 1px #d0d0d0 solid;
+            padding: 16px;
+            background-color: #e6e6e6;
+            border-radius: 0 0 4px 4px;
+            color: dimgrey;
+            font-size: 0.8em;
+        }
+
+        .cardContainer .console.skipped{
+            color: #d9d9d9;
+        }
+
+        .cardContainer .console.failed {
+            color: #ffb2b2;
+        }
+
+        .cardContainer .testDuration {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            text-align: right;
+            padding-right: 8px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+<div class="pageHeader">
+    <span class="projectTitle">go-test-report</span>
+    <div class="testStats">
+        <span class="total"><span class="indicator">&boxbox;</span> Total: <strong>2</strong>Duration: <strong>7.292s</strong>
+        </span><span class="passed"><span class="indicator">&check;</span> Passed: <strong>2</strong>
+        </span><span class="skipped"><span class="indicator">&dash;</span> Skipped: <strong>0</strong>
+        </span><span class="failed"><span class="indicator">&cross;</span> Failed: <strong>0</strong>
+        </span>
+    </div>
+    <span class="testGroupsTitle">Test Groups:</span>
+    <span class="testExecutionDate">April 4, 2023 15:21:14</span>
+</div>
+<div class="testReportContainer">
+    <div class="cardContainer">
+        <div id="testResults">
+            
+                <div class="testResultGroup  " id="0"></div>
+            
+        </div>
+    </div>
+    <div class="cardContainer testGroupList" id="testGroupList"></div>
+</div>
+<script type="application/javascript">
+    /**
+ * @typedef TestStatus
+ * @property {string} TestName
+ * @property {string} Package
+ * @property {number} ElapsedTime
+ * @property {Array.<string>} Output
+ * @property {boolean} Passed
+ * @property {boolean} Skipped
+ */
+class TestStatus {}
+
+/**
+ * @typedef TestGroupData
+ * @type {object}
+ * @property {string} FailureIndicator
+ * @property {string} SkippedIndicator
+ * @property {Array.<TestStatus>}
+ */
+class TestGroupData {}
+
+/**
+ * @typedef TestResults
+ * @type {Array.<TestGroupData>}
+ */
+class TestResults extends Array {}
+
+/**
+ * @typedef SelectedItems
+ * @property {HTMLElement|EventTarget} testResults
+ * @property {String} selectedTestGroupColor
+ */
+class SelectedItems {}
+
+/**
+ * @typedef GoTestReportElements
+ * @property {TestResults} data
+ * @property {HTMLElement} testResultsElem
+ * @property {HTMLElement} testGroupListElem
+ */
+class GoTestReportElements {}
+
+
+/**
+ * Main entry point for GoTestReport.
+ * @param {GoTestReportElements} elements
+ * @returns {{testResultsClickHandler: testResultsClickHandler}}
+ * @constructor
+ */
+window.GoTestReport = function (elements) {
+  const /**@type {SelectedItems}*/ selectedItems = {
+    testResults: null,
+    selectedTestGroupColor: null
+  }
+
+  function addEventData(event) {
+    if (event.data == null) {
+      event.data = {target: event.target}
+    }
+    return event
+  }
+
+
+  const goTestReport = {
+    /**
+     * Invoked when a user clicks on one of the test group div elements.
+     * @param {HTMLElement} target The element associated with the test group.
+     * @param {boolean} shiftKey If pressed, all of test detail associated to the test group is shown.
+     * @param {TestResults} data
+     * @param {SelectedItems} selectedItems
+     * @param {function(target: Element, data: TestResults)} testGroupListHandler
+     */
+    testResultsClickHandler: function (target,
+                                       shiftKey,
+                                       data,
+                                       selectedItems,
+                                       testGroupListHandler) {
+
+      if (target.classList.contains('testResultGroup') === false) {
+        return
+      }
+      if (selectedItems.testResults != null) {
+        let testResultsElement = /**@type {HTMLElement}*/ selectedItems.testResults
+        testResultsElement.classList.remove("selected")
+        testResultsElement.style.backgroundColor = selectedItems.selectedTestGroupColor
+      }
+      const testGroupId = /**@type {number}*/ target.id
+      if ((target.id === undefined)
+        || (data[testGroupId] === undefined)
+        || (data[testGroupId]['TestResults'] === undefined)) {
+        return
+      }
+      const testResults = /**@type {TestResults}*/ data[testGroupId]['TestResults']
+      let testGroupList = /**@type {string}*/ ''
+      selectedItems.selectedTestGroupColor = getComputedStyle(target).getPropertyValue('background-color')
+      selectedItems.testResults = target
+      target.classList.add("selected")
+      for (let i = 0; i < testResults.length; i++) {
+        const testResult = /**@type {TestGroupData}*/ testResults[i]
+        const testPassed = /**@type {boolean}*/ testResult.Passed
+        const testSkipped = /**@type {boolean}*/ testResult.Skipped
+        const testPassedStatus = /**@type {string}*/ (testPassed) ? '' : (testSkipped ? 'skipped' : 'failed')
+        const testId = /**@type {string}*/ target.attributes['id'].value
+        testGroupList += `<div class="testGroupRow ${testPassedStatus}" data-groupid="${testId}" data-index="${i}">
+        <span class="testStatus ${testPassedStatus}">${(testPassed) ? '&check' : (testSkipped ? '&dash' : '&cross')};</span>
+        <span class="testTitle">${testResult.TestName}</span>
+        <span class="testDuration"><span>${testResult.ElapsedTime}s </span>⏱</span>
+      </div>`
+      }
+      const testGroupListElem = elements.testGroupListElem
+      testGroupListElem.innerHTML = ''
+      testGroupListElem.innerHTML = testGroupList
+
+      if (shiftKey) {
+        testGroupListElem.querySelectorAll('.testGroupRow')
+                         .forEach((elem) => testGroupListHandler(elem, data))
+      } else if (testResults.length === 1) {
+        testGroupListHandler(testGroupListElem.querySelector('.testGroupRow'), data)
+      }
+    },
+
+    /**
+     *
+     * @param {Element} target
+     * @param {TestResults} data
+     */
+    testGroupListHandler: function (target, data) {
+      const attribs = target['attributes']
+      if (attribs.hasOwnProperty('data-groupid')) {
+        const groupId = /**@type {number}*/ attribs['data-groupid'].value
+        const testIndex = /**@type {number}*/ attribs['data-index'].value
+        const testStatus = /**@type {TestStatus}*/ data[groupId]['TestResults'][testIndex]
+        const testOutputDiv = /**@type {HTMLDivElement}*/ target.querySelector('div.testOutput')
+
+        if (testOutputDiv == null) {
+          const testOutputDiv = document.createElement('div')
+          testOutputDiv.classList.add('testOutput')
+          const consolePre = document.createElement('pre')
+          consolePre.classList.add('console')
+          const testDetailDiv = document.createElement('div')
+          testDetailDiv.classList.add('testDetail')
+          const packageNameDiv = document.createElement('div')
+          packageNameDiv.classList.add('package')
+          packageNameDiv.innerHTML = `<strong>Package:</strong> ${testStatus.Package}`
+          const testFileNameDiv = document.createElement('div')
+          testFileNameDiv.classList.add('filename')
+          if (testStatus.TestFileName.trim() === "") {
+            testFileNameDiv.innerHTML = `<strong>Filename:</strong> n/a &nbsp;&nbsp;`
+          } else {
+            testFileNameDiv.innerHTML = `<strong>Filename:</strong> ${testStatus.TestFileName} &nbsp;&nbsp;`
+            testFileNameDiv.innerHTML += `<strong>Line:</strong> ${testStatus.TestFunctionDetail.Line} `
+            testFileNameDiv.innerHTML += `<strong>Col:</strong> ${testStatus.TestFunctionDetail.Col}`
+          }
+          testDetailDiv.insertAdjacentElement('beforeend', packageNameDiv)
+          testDetailDiv.insertAdjacentElement('beforeend', testFileNameDiv)
+          testOutputDiv.insertAdjacentElement('afterbegin', consolePre)
+          testOutputDiv.insertAdjacentElement('beforeend', testDetailDiv)
+          target.insertAdjacentElement('beforeend', testOutputDiv)
+
+          if (testStatus.Passed) {
+            consolePre.classList.remove('skipped')
+            consolePre.classList.remove('failed')
+          } else if (testStatus.Skipped) {
+            consolePre.classList.add('skipped')
+            consolePre.classList.remove('failed')
+          } else {
+            consolePre.classList.remove('skipped')
+            consolePre.classList.add('failed')
+          }
+          consolePre.textContent = testStatus.Output.join('')
+        } else {
+          testOutputDiv.remove()
+        }
+      }
+    }
+  }
+
+  //+------------------------+
+  //|    setup DOM events    |
+  //+------------------------+
+  elements.testResultsElem
+          .addEventListener('click', event =>
+            goTestReport.testResultsClickHandler(/**@type {HTMLElement}*/ addEventData(event).data.target,
+                                                 event.shiftKey,
+                                                 elements.data,
+                                                 selectedItems,
+                                                 goTestReport.testGroupListHandler))
+
+  elements.testGroupListElem
+          .addEventListener('click', event =>
+            goTestReport.testGroupListHandler(/**@type {Element}*/ event.target,
+                                              elements.data))
+
+  return goTestReport
+}
+
+
+    
+
+    const data = [{"FailureIndicator":"","SkippedIndicator":"","TestResults":[{"TestName":"TestEntryRecord","Package":"auto_test/cases","ElapsedTime":0.27,"Output":["","=== RUN   TestEntryRecord\n","2023/04/04 15:21:13 入场记录\n","2023/04/04 15:21:14 接口返回：{\"code\":10000,\"msg\":\"请求成功\",\"data\":{\"total\":121,\"list\":[{\"club\":1,\"start_work_time\":1680592587,\"stop_work_time\":1680592759,\"round\":\"KG1680592587649\",\"table_num\":\"\",\"customer_name\":\"04041\",\"member_code\":\"OK04041\",\"admission_type\":1,\"currency\":5,\"start_work_type\":2,\"total_principal_type\":\"1C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":1000000,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":1000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":3000000,\"total_up_down_chips\":1000000},{\"club\":1,\"start_work_time\":1680592455,\"stop_work_time\":1680592492,\"round\":\"KG1680592455187\",\"table_num\":\"\",\"customer_name\":\"04041\",\"member_code\":\"OK04041\",\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"total_principal_type\":\"1C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":1000000,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":1000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":1000000,\"total_up_down_chips\":1","000000},{\"club\":1,\"start_work_time\":1680591209,\"stop_work_time\":1680591916,\"round\":\"KG1680591209728\",\"table_num\":\"\",\"customer_name\":\"04041\",\"member_code\":\"OK04041\",\"admission_type\":1,\"currency\":5,\"start_work_type\":2,\"total_principal_type\":\"1C\",\"total_add_chips\":0,\"total_return_chips\":2000000,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":3000000,\"total_up_down_chips\":1000000},{\"club\":1,\"start_work_time\":1680590489,\"stop_work_time\":1680590569,\"round\":\"KG1680590489758\",\"table_num\":\"\",\"customer_name\":\"011\",\"member_code\":\"OK011\",\"admission_type\":1,\"currency\":6,\"start_work_type\":1,\"total_principal_type\":\"22M\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":22000000,\"total_up_down_chips\":-22000000},{\"club\":3,\"start_work_time\":1680590209,\"stop_work_time\":1680590347,\"round\":\"KG1680590209655\",\"table_","num\":\"\",\"customer_name\":\"斯嘉丽\",\"member_code\":\"OK8805\",\"admission_type\":1,\"currency\":4,\"start_work_type\":2,\"total_principal_type\":\"1M\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":3000000,\"total_up_down_chips\":-1000000},{\"club\":3,\"start_work_time\":1680589841,\"stop_work_time\":1680589878,\"round\":\"KG1680589841507\",\"table_num\":\"\",\"customer_name\":\"斯嘉丽\",\"member_code\":\"OK8805\",\"admission_type\":1,\"currency\":4,\"start_work_type\":1,\"total_principal_type\":\"10C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":0,\"total_up_down_chips\":-10000000},{\"club\":1,\"start_work_time\":1680588543,\"stop_work_time\":1680588730,\"round\":\"KG1680588543293\",\"table_num\":\"\",\"customer_name\":\"04041\",\"member_code\":\"OK04041\",\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"t","otal_principal_type\":\"1.9925C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":1992500,\"total_up_down_chips\":-1992500},{\"club\":3,\"start_work_time\":1680585046,\"stop_work_time\":1680588421,\"round\":\"KG1680585046034\",\"table_num\":\"\",\"customer_name\":\"janice01\",\"member_code\":\"OK8804\",\"admission_type\":1,\"currency\":4,\"start_work_type\":1,\"total_principal_type\":\"10M+1C\",\"total_add_chips\":1000000,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":1000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":11000000,\"total_up_down_chips\":-10000000},{\"club\":1,\"start_work_time\":1680588153,\"stop_work_time\":1680588258,\"round\":\"KG1680588153109\",\"table_num\":\"\",\"customer_name\":\"04041\",\"member_code\":\"OK04041\",\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"total_principal_type\":\"1.9925C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public","_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":1992500,\"total_up_down_chips\":-1992500},{\"club\":1,\"start_work_time\":1680586467,\"stop_work_time\":1680587094,\"round\":\"KG1680586467889\",\"table_num\":\"\",\"customer_name\":\"011\",\"member_code\":\"OK011\",\"admission_type\":1,\"currency\":6,\"start_work_type\":1,\"total_principal_type\":\"1C+1C+1M\",\"total_add_chips\":2000000,\"total_return_chips\":2000000,\"total_public_tip_chips\":2000000,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":1000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":3000000,\"total_up_down_chips\":2000000},{\"club\":3,\"start_work_time\":1680581565,\"stop_work_time\":1680586523,\"round\":\"KG1680581565725\",\"table_num\":\"\",\"customer_name\":\"janice01\",\"member_code\":\"OK8804\",\"admission_type\":1,\"currency\":4,\"start_work_type\":2,\"total_principal_type\":\"1C+1M\",\"total_add_chips\":1000000,\"total_return_chips\":1000000,\"total_public_tip_chips\":2000000,\"total_croupier_tip_chips\":1000000,\"stop_work_tabl","e_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":4500000,\"total_up_down_chips\":2000000},{\"club\":1,\"start_work_time\":1680525187,\"stop_work_time\":1680526310,\"round\":\"KG1680525187781\",\"table_num\":\"\",\"customer_name\":\"77888999AAAA\",\"member_code\":\"OK778866\",\"admission_type\":1,\"currency\":1,\"start_work_type\":1,\"total_principal_type\":\"59.995C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":55342500,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":4995000,\"total_up_down_chips\":-4652500},{\"club\":1,\"start_work_time\":1680525213,\"stop_work_time\":1680525276,\"round\":\"KG1680525213195\",\"table_num\":\"\",\"customer_name\":\"03301\",\"member_code\":\"OK03301\",\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"total_principal_type\":\"1.9925C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":1992500,\"total_up_down","_chips\":-1992500},{\"club\":1,\"start_work_time\":1680524968,\"stop_work_time\":1680525018,\"round\":\"KG1680524968498\",\"table_num\":\"\",\"customer_name\":\"011\",\"member_code\":\"OK011\",\"admission_type\":1,\"currency\":6,\"start_work_type\":1,\"total_principal_type\":\"11M\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":12000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":11000000,\"total_up_down_chips\":1000000},{\"club\":1,\"start_work_time\":1680524301,\"stop_work_time\":1680524589,\"round\":\"KG1680524301079\",\"table_num\":\"\",\"customer_name\":\"03301\",\"member_code\":\"OK03301\",\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"total_principal_type\":\"1.9925C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":1992500,\"total_up_down_chips\":-1992500},{\"club\":1,\"start_work_time\":1680522783,\"stop_work_time\":1680522945,\"round\":\"KG1680522","783149\",\"table_num\":\"\",\"customer_name\":\"03301\",\"member_code\":\"OK03301\",\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"total_principal_type\":\"1.9925C\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":0,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":1992500,\"total_up_down_chips\":-1992500},{\"club\":1,\"start_work_time\":1680522847,\"stop_work_time\":1680522873,\"round\":\"KG1680522847185\",\"table_num\":\"\",\"customer_name\":\"011\",\"member_code\":\"OK011\",\"admission_type\":1,\"currency\":6,\"start_work_type\":1,\"total_principal_type\":\"2M\",\"total_add_chips\":0,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":1000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":2000000,\"total_up_down_chips\":-1000000},{\"club\":1,\"start_work_time\":1680522214,\"stop_work_time\":1680522605,\"round\":\"KG1680522214011\",\"table_num\":\"\",\"customer_name\":\"ok778899\",\"member_code\":\"OK778899\",\"admission_type\":1,\"currency\":","1,\"start_work_type\":1,\"total_principal_type\":\"100C+10.3175C\",\"total_add_chips\":10317500,\"total_return_chips\":0,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":130475000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":317500,\"total_up_down_chips\":20157500},{\"club\":1,\"start_work_time\":1680522324,\"stop_work_time\":1680522493,\"round\":\"KG1680522324712\",\"table_num\":\"\",\"customer_name\":\"011\",\"member_code\":\"OK011\",\"admission_type\":1,\"currency\":6,\"start_work_type\":1,\"total_principal_type\":\"1C+2C\",\"total_add_chips\":2000000,\"total_return_chips\":4000000,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":11000000,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":2000000,\"total_up_down_chips\":12000000},{\"club\":1,\"start_work_time\":1680521174,\"stop_work_time\":1680522148,\"round\":\"KG1680521174226\",\"table_num\":\"\",\"customer_name\":\"ok778899\",\"member_code\":\"OK778899\",\"admission_type\":1,\"currency\":1,\"start_work_type\":1,\"total_principal_type\":\"100C+1.555C\",\"total","_add_chips\":1555000,\"total_return_chips\":16422500,\"total_public_tip_chips\":0,\"total_croupier_tip_chips\":0,\"stop_work_table_chips\":130317500,\"stop_work_table_bottom_chips\":0,\"total_convert_chips\":5555000,\"total_up_down_chips\":45185000}]}}\n","2023/04/04 15:21:14 响应时间：255ms\n","--- PASS: TestEntryRecord (0.27s)",""],"Passed":true,"Skipped":false,"TestFileName":"entryreocrd_test.go","TestFunctionDetail":{"Line":10,"Col":1}},{"TestName":"TestStartWorkList","Package":"auto_test/cases","ElapsedTime":0.22,"Output":["","=== RUN   TestStartWorkList\n","2023/04/04 15:21:14 开工列表\n","2023/04/04 15:21:14 接口返回：{\"code\":10000,\"msg\":\"请求成功\",\"data\":{\"total\":61,\"list\":[{\"club\":3,\"member_code\":\"OK8805\",\"member_name\":\"斯嘉丽\",\"round\":\"KG1680591032444\",\"start_work_time\":1680591032,\"admission_type\":1,\"currency\":1,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"斯嘉丽\",\"is_suspend_start_work\":2,\"total_principal\":\"1M\",\"total_convert_chips\":1000000},{\"club\":1,\"member_code\":\"OK011\",\"member_name\":\"011\",\"round\":\"KG1680590536686\",\"start_work_time\":1680590536,\"admission_type\":1,\"currency\":6,\"start_work_type\":2,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"011\",\"is_suspend_start_work\":2,\"total_principal\":\"3M+5M\",\"total_convert_chips\":8000000},{\"club\":1,\"member_code\":\"OK04041\",\"member_name\":\"04041\",\"round\":\"KG1680588667865\",\"start_work_time\":1680588667,\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"04041\",\"is_suspend_start_work\":2,\"total_principal\":\"1.9925C\",\"total_convert_chips\":1992500},","{\"club\":5,\"member_code\":\"OK606\",\"member_name\":\"萨达\",\"round\":\"KG1680587452414\",\"start_work_time\":1680587452,\"admission_type\":1,\"currency\":3,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"萨达\",\"is_suspend_start_work\":2,\"total_principal\":\"12.35M\",\"total_convert_chips\":12350000},{\"club\":1,\"member_code\":\"OK778866\",\"member_name\":\"77888999AAAA\",\"round\":\"KG1680529890345\",\"start_work_time\":1680529890,\"admission_type\":1,\"currency\":1,\"start_work_type\":2,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"77888999AAAA\",\"is_suspend_start_work\":2,\"total_principal\":\"28.555C\",\"total_convert_chips\":114220000},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680523741279\",\"start_work_time\":1680523741,\"admission_type\":1,\"currency\":4,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"6M\",\"total_convert_chips\":6000000},{\"club\":5,\"member_code\":\"OK606\",\"member_name\":\"萨达\",\"round\":\"KG16805236","03023\",\"start_work_time\":1680523603,\"admission_type\":1,\"currency\":3,\"start_work_type\":1,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"萨达\",\"is_suspend_start_work\":2,\"total_principal\":\"1C\",\"total_convert_chips\":1000000},{\"club\":5,\"member_code\":\"OK606\",\"member_name\":\"萨达\",\"round\":\"KG1680522740780\",\"start_work_time\":1680522740,\"admission_type\":1,\"currency\":3,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"萨达\",\"is_suspend_start_work\":2,\"total_principal\":\"5.23M\",\"total_convert_chips\":5230000},{\"club\":1,\"member_code\":\"OK03301\",\"member_name\":\"03301\",\"round\":\"KG1680522419822\",\"start_work_time\":1680522419,\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"03301\",\"is_suspend_start_work\":2,\"total_principal\":\"1.9925C\",\"total_convert_chips\":1992500},{\"club\":1,\"member_code\":\"OK03301\",\"member_name\":\"03301\",\"round\":\"KG1680522211814\",\"start_work_time\":1680522211,\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"principa","l_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"03301\",\"is_suspend_start_work\":2,\"total_principal\":\"1.9975C\",\"total_convert_chips\":1997500},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680522081894\",\"start_work_time\":1680522081,\"admission_type\":1,\"currency\":4,\"start_work_type\":1,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"10.005C\",\"total_convert_chips\":10005000},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680521730291\",\"start_work_time\":1680521730,\"admission_type\":1,\"currency\":4,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"6M\",\"total_convert_chips\":6000000},{\"club\":5,\"member_code\":\"OK606\",\"member_name\":\"萨达\",\"round\":\"KG1680521684194\",\"start_work_time\":1680521684,\"admission_type\":1,\"currency\":3,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"萨达\",\"is_suspend_start_work\":2,\"tota","l_principal\":\"10.25M\",\"total_convert_chips\":10250000},{\"club\":1,\"member_code\":\"OK03301\",\"member_name\":\"03301\",\"round\":\"KG1680521006068\",\"start_work_time\":1680521006,\"admission_type\":1,\"currency\":5,\"start_work_type\":1,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"03301\",\"is_suspend_start_work\":2,\"total_principal\":\"1.9925C\",\"total_convert_chips\":1992500},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680520693385\",\"start_work_time\":1680520693,\"admission_type\":1,\"currency\":4,\"start_work_type\":1,\"principal_type\":\"M\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"60M\",\"total_convert_chips\":60000000},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680520184790\",\"start_work_time\":1680520184,\"admission_type\":1,\"currency\":4,\"start_work_type\":2,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"1C\",\"total_convert_chips\":3000000},{\"club\":5,\"member_code\":\"OK605\",\"me","mber_name\":\"史蒂夫\",\"round\":\"KG1680518141984\",\"start_work_time\":1680518141,\"admission_type\":1,\"currency\":3,\"start_work_type\":1,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"史蒂夫\",\"is_suspend_start_work\":2,\"total_principal\":\"10C\",\"total_convert_chips\":22100000},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680516699171\",\"start_work_time\":1680516699,\"admission_type\":1,\"currency\":4,\"start_work_type\":2,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"1C\",\"total_convert_chips\":1500000},{\"club\":3,\"member_code\":\"OK8804\",\"member_name\":\"janice01\",\"round\":\"KG1680510432551\",\"start_work_time\":1680510432,\"admission_type\":1,\"currency\":4,\"start_work_type\":2,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"janice01\",\"is_suspend_start_work\":2,\"total_principal\":\"1C\",\"total_convert_chips\":3000000},{\"club\":1,\"member_code\":\"OK03302\",\"member_name\":\"03302\",\"round\":\"KG1680502295220\",\"start_work_time\":1680502295,\"admission_t","ype\":1,\"currency\":5,\"start_work_type\":2,\"principal_type\":\"C\",\"shares_type\":\"A\",\"customer_name\":\"03302\",\"is_suspend_start_work\":2,\"total_principal\":\"1C\",\"total_convert_chips\":-1000000}]}}\n","2023/04/04 15:21:14 响应时间：225ms\n","--- PASS: TestStartWorkList (0.22s)",""],"Passed":true,"Skipped":false,"TestFileName":"startwork_test.go","TestFunctionDetail":{"Line":10,"Col":1}}]}]
+
+    const report = window.GoTestReport({
+                                         data: data,
+                                         testResultsElem: document.getElementById('testResults'),
+                                         testGroupListElem: document.getElementById('testGroupList')
+                                       });
+
+
+</script>
+</body>
+</html>
