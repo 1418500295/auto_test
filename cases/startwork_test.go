@@ -8,10 +8,10 @@ import (
 )
 
 func TestStartWorkList(t *testing.T) {
-	log.Println("开工列表")
-	data := common.GetTestData("startwork.json", 0)
-	res := common.DoJsonPost(common.GetApiUrl("startWorkListUri"), data)
-	assert.Equal(t, "请求成功", res["msg"])
-	assert.Equal(t, 10000, res["code"])
+	log.Println("")
+	data := common.GetTestData(".json", 0)
+	res := common.DoJsonPost(common.GetApiUrl(""), data)
+	assert.Equal(t, "", res["msg"])
+	assert.Equal(t, , res["code"])
 
 }

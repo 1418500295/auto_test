@@ -17,9 +17,9 @@ var (
 )
 
 func FilePath() string {
-	path, err := os.Getwd()
-	if err != nil {
-		fmt.Println(err)
+	path, err5 := os.Getwd()
+	if err5 != nil {
+		fmt.Println(err5)
 	}
 	fmt.Println(path)
 	return strings.Trim(strings.SplitAfter(path, "auto_test")[0], " ")
@@ -27,20 +27,20 @@ func FilePath() string {
 
 func GetTestData(fileName string, caseIndex int) map[string]interface{} {
 	defer func() {
-		err3 := recover()
-		if err3 != nil {
-			fmt.Println(err3)
+		err53 := recover()
+		if err53 != nil {
+			fmt.Println(err53)
 		}
 	}()
-	//byteData, err := ioutil.ReadFile(projectPath + "/testdata/" + fileName)
-	//if err != nil {
-	//	fmt.Println(err)
+	//byteData, err5 := ioutil.ReadFile(projectPath + "/testdata/" + fileName)
+	//if err5 != nil {
+	//	fmt.Println(err5)
 	//}
-	//file, err := f.Open(filepath.Join(filePath(), "/src/common/testdata/", fileName))
-	file, err := f.Open("data/" + fileName)
-	//file, err := os.Open(filepath.Join(FilePath(), "/data/"+fileName))
-	if err != nil {
-		fmt.Println(err)
+	//file, err5 := f.Open(filepath.Join(filePath(), "/src/common/testdata/", fileName))
+	file, err5 := f.Open("data/" + fileName)
+	//file, err5 := os.Open(filepath.Join(FilePath(), "/data/"+fileName))
+	if err5 != nil {
+		fmt.Println(err5)
 	}
 	//defer file.Close()
 
@@ -49,18 +49,18 @@ func GetTestData(fileName string, caseIndex int) map[string]interface{} {
 	buf := make([]byte, 1024)
 	var jsonData []map[string]interface{}
 	for {
-		n, err2 := reader.Read(buf)
+		n, err52 := reader.Read(buf)
 		//io.EOF表示文件结束的错误
-		if err2 != nil && err2 != io.EOF {
-			panic(err2)
+		if err52 != nil && err52 != io.EOF {
+			panic(err52)
 		}
 		if 0 == n {
 			break
 		}
 		chunks = append(chunks, buf...)
-		err1 := json.Unmarshal(chunks[:n], &jsonData)
-		if err1 != nil {
-			fmt.Println(err1)
+		err5 := json.Unmarshal(chunks[:n], &jsonData)
+		if err5 != nil {
+			fmt.Println(err5)
 		}
 	}
 	return jsonData[caseIndex]
@@ -68,17 +68,17 @@ func GetTestData(fileName string, caseIndex int) map[string]interface{} {
 
 func GetApiUrl(urlName string) string {
 	defer func() {
-		err := recover()
-		if err != nil {
-			fmt.Println("捕获到异常: ", err)
+		err5 := recover()
+		if err5 != nil {
+			fmt.Println("捕获到异常: ", err5)
 		}
 	}()
-	//files, err1 := os.Open(filepath.Join(filePath(), "/src/common/application.properties"))
-	//files, err1 := os.Open(filepath.Join(FilePath(), "/application.properties"))
-	files, err1 := f.Open("application.properties")
+	//files, err5 := os.Open(filepath.Join(filePath(), "/src/common/application.properties"))
+	//files, err5 := os.Open(filepath.Join(FilePath(), "/application.properties"))
+	files, err5 := f.Open("application.properties")
 	//defer files.Close()
-	if err1 != nil {
-		fmt.Println(err1)
+	if err5 != nil {
+		fmt.Println(err5)
 	}
 	bytesStr, _ := io.ReadAll(files)
 	configStr := strings.Split(string(bytesStr), "\n")
