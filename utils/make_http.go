@@ -10,8 +10,8 @@ import (
 )
 
 var cli *http.Client
-var Start int64
-var End int64
+var Start time.Time
+var End time.Duration
 
 func init() {
 	cli = &http.Client{Transport: &http.Transport{
@@ -32,13 +32,13 @@ func SendPost(url string, data map[string]interface{}, token string) map[string]
 	}
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("t", token)
-	Start = time.Now().UnixNano() / 1e6
+	Start = time.Now()
 	res, err := cli.Do(req)
 	if err != nil {
 		fmt.Println(err)
 	}
-	End = time.Now().UnixNano() / 1e6
 	body, _ := io.ReadAll(res.Body)
+	End = time.Since(Start)
 	var resMap map[string]interface{}
 	err = json.Unmarshal(body, &resMap)
 	if err != nil {

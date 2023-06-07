@@ -24,14 +24,13 @@ var et int64
 var st int64
 
 // var token3 = "eyJhbGc"
-var reqUrl = ""
+var reqUrl = "rk/list"
 var resTime int64
 var chanResTime chan int64
 var resTimeList []int
 var rTimeChan = make(chan int, 1000000) //创建响应数据收集缓冲区
 var sucNum int64
 var failNum int64
-var lock sync.Mutex
 var useTime int64
 var avgSize int64
 
@@ -78,31 +77,13 @@ func ninetyRespTime(timeList []int) float64 {
 	return float64(timeList[int(float64(len(timeList))*resSize)-1]) / float64(1000)
 }
 
-type Requests struct {
-	url     string
-	data    map[string]interface{}
-	headers map[string]string
-}
-
 var reqData = map[string]interface{}{
-	//"": 5,
-	"":     1,
+	"page": 1,
 	"size": 20,
 }
 var headers = map[string]string{
-	"t": "",
+	"t": "fTzVfJWJ6H6LEGCjUuibgR4j5qn_Ms",
 }
-
-//var transPort *http.Transport
-
-//var req  *HttpRequest.Request
-//var cli = &http.Client{Transport: &http.Transport{
-//	MaxIdleConns:        10000, // Set your desired maximum number of idle connections
-//	MaxIdleConnsPerHost: 10000,
-//	IdleConnTimeout:     30 * time.Second, // Set your desired idle connection timeout
-//	DisableCompression:  true,             // Optional: Disable compression for testing purposes
-//	DisableKeepAlives:   false,            //复用连接
-//}}
 
 func getData() *bytes.Reader {
 	dataBy, _ := json.Marshal(reqData)
@@ -110,7 +91,9 @@ func getData() *bytes.Reader {
 	return reader
 }
 
-func (requests *Requests) execute(i int, times int64) {
+var lock = sync.Mutex{}
+
+func execute(i int, times int64) {
 	defer func() {
 		if err5 := recover(); err5 != nil {
 			const size = 64 << 10
@@ -121,21 +104,19 @@ func (requests *Requests) execute(i int, times int64) {
 	}()
 	st = time.Now().UnixMilli()
 	for true {
-		//req := HttpRequest.NewRequest()
-		//headers := map[string]string{"t": token3}
 		res := SendPost(reqUrl, reqData, headers["t"])
-		//avgSize = req.ContentLength
-		rTimeChan <- int(End - Start)
-		//lock.Lock()
-		//resTimeList = append(resTimeList, resTime)
-		//lock.Unlock()
-		log.Printf("第%d个协程返回：%v\n", i, res)
+		//rTimeChan <- int(End - Start)
+		//fmt.Println(int(End - Start))
+		Times := int64(End)
+		fmt.Println(Times / 1000000)
+		fmt.Println(End)
+		rTimeChan <- int(Times / 1000000)
+		log.Printf("第%d个协程返回：\n", i)
 		if res["msg"].(string) == `请求成功` && res["code"].(float64) == 10000 {
 			atomic.AddInt64(&sucNum, 1)
 		} else {
 			atomic.AddInt64(&failNum, 1)
 		}
-		//defer res.Close()
 		et = time.Now().UnixMilli()
 		if et-st > times*1000 {
 			break
@@ -144,7 +125,7 @@ func (requests *Requests) execute(i int, times int64) {
 	}
 }
 
-func (requests *Requests) run(num int, executeTimes int64, countDown *sync.WaitGroup, control *sync.WaitGroup, singleChan chan struct{}, timeOut int) {
+func run(num int, executeTimes int64) {
 	defer func() {
 		if err5 := recover(); err5 != nil {
 			const size = 64 << 10
@@ -154,51 +135,29 @@ func (requests *Requests) run(num int, executeTimes int64, countDown *sync.WaitG
 		}
 	}()
 	barrier := cyclicbarrier.New(num)
-	countDown.Add(num)
-	//control.Add(1)
+	wg := sync.WaitGroup{}
+	wg.Add(num)
 	p, _ := ants.NewPool(num)
 	for i := 0; i < num; i++ {
 		c := i
-		p.Submit(func() {
+		err := p.Submit(func() {
 			err5 := barrier.Await(context.Background()) //同步集合点
 			if err5 != nil {
 				fmt.Println("集合点同步异常:", err5)
 			}
-			requests.execute(c, executeTimes)
-			defer countDown.Done()
+			execute(c, executeTimes)
+			defer wg.Done()
 		})
-		//go func(i int) {
-		//	//control.Wait() //开启阀门，阻塞子协程执行
-		//	err5 := barrier.Await(context.Background()) //同步集合点
-		//	if err5 != nil {
-		//		return
-		//	}
-		//	requests.execute(i, executeTimes)
-		//	defer countDown.Done() //计数器-1
-		//}(i)
+		if err != nil {
+			return
+		}
 	}
-	ctx, cancle := context.WithTimeout(context.Background(), time.Duration(timeOut)*time.Second)
-	defer cancle()
+	wg.Wait()
 	defer ants.Release()
-	fmt.Println("------执行开始------")
-	//control.Done() //关闭阀门
-	go func() {
-		countDown.Wait() //等待所有子协程执行完毕
-		singleChan <- struct{}{}
-		close(rTimeChan) //关闭数据收集通道
-	}()
-	select {
-	case <-singleChan:
-		fmt.Println("******协程处理完成******")
-	case <-ctx.Done():
-		fmt.Println("协程处理超时!!!")
-	}
-	for ch := range rTimeChan {
-		resTimeList = append(resTimeList, ch)
-	}
+
 }
 
-func printTable() string {
+func printTable(num int) string {
 	table, err5 := gotable.Create("耗时", "并发数", "成功的请求数",
 		"失败的请求数", "平均响应时间", "50%响应时间", "90%响应时间", "最大响应时间", "最小响应时间", "qps")
 	if err5 != nil {
@@ -214,7 +173,6 @@ func printTable() string {
 		fmt.Sprintf("%.3f", ninetyRespTime(resTimeList)),
 		fmt.Sprintf("%.3f", maxRespTime(resTimeList)),
 		fmt.Sprintf("%.3f", minRespTime(resTimeList)),
-		//strconv.FormatInt(avgSize, 10),
 		fmt.Sprintf("%.3f", qps()),
 	})
 	result["耗时"] = fmt.Sprintf("%.1f", float64(useTime/1000))
@@ -233,24 +191,32 @@ func printTable() string {
 }
 
 func Do() string {
-	countDown := &sync.WaitGroup{}
-	control := &sync.WaitGroup{}
-	singleChan := make(chan struct{})
-	//account1.StartWork()
-	this := Requests{headers: headers, url: reqUrl, data: reqData}
-	this.run(2, 2, countDown, control, singleChan, 15)
-
-	return printTable()
-
-	//body1, _ := json.Marshal(printTable())
-	//fmt.Println(string(body1))
-	//conn, err5 := net.Dial("tcp", "127.0.0.1:8888")
-	//if err5 != nil {
-	//	log.Fatal(err5)
-	//}
-	//fmt.Println("连接服务器成功。。。")
-	//_, err5 = conn.Write(body1)
-	//if err5 != nil {
-	//	fmt.Println(err5)
-	//}
+	for i := 0; i < 3; i++ {
+		if i == 1 {
+			run(2, 2)
+		}
+		if i == 2 {
+			run(3, 2)
+		}
+		if i == 4 {
+			run(4, 2)
+		}
+		fmt.Println("--------------------------------")
+		time.Sleep(3 * time.Second)
+	}
+	//run(2, 2)
+	//fmt.Println("---------------------------------------------------------")
+	//<-time.After(3 * time.Second)
+	//run(3, 2)
+	//fmt.Println("---------------------------------------------------------")
+	//<-time.After(3 * time.Second)
+	//run(4, 2)
+	//fmt.Println("---------------------------------------------------------")
+	close(rTimeChan)
+	for ch := range rTimeChan {
+		resTimeList = append(resTimeList, ch)
+	}
+	fmt.Println(resTimeList)
+	fmt.Println(len(resTimeList))
+	return printTable(9)
 }
