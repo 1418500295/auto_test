@@ -24,7 +24,7 @@ var et int64
 var st int64
 
 // var token3 = "eyJhbGc"
-var reqUrl = "rk/list"
+var reqUrl = ""
 var resTime int64
 var chanResTime chan int64
 var resTimeList []int
@@ -82,7 +82,7 @@ var reqData = map[string]interface{}{
 	"size": 20,
 }
 var headers = map[string]string{
-	"t": "fTzVfJWJ6H6LEGCjUuibgR4j5qn_Ms",
+	"t": "",
 }
 
 func getData() *bytes.Reader {
@@ -190,19 +190,11 @@ func printTable(num int) string {
 	return string(by)
 }
 
-func Do() string {
-	for i := 0; i < 3; i++ {
-		if i == 1 {
-			run(2, 2)
-		}
-		if i == 2 {
-			run(3, 2)
-		}
-		if i == 4 {
-			run(4, 2)
-		}
-		fmt.Println("--------------------------------")
-		time.Sleep(3 * time.Second)
+func Do(c []int) string {
+	total := 0
+	for _, v := range c {
+		run(v, 2)
+		total += v
 	}
 	//run(2, 2)
 	//fmt.Println("---------------------------------------------------------")
@@ -218,5 +210,5 @@ func Do() string {
 	}
 	fmt.Println(resTimeList)
 	fmt.Println(len(resTimeList))
-	return printTable(9)
+	return printTable(total)
 }

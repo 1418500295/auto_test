@@ -1,9 +1,11 @@
 package main
 
 import (
+	"auto_test/utils"
+	"encoding/json"
 	"fmt"
 	"log"
-	"net/rpc"
+	"net"
 	"sync"
 )
 
@@ -14,33 +16,67 @@ import (
 var slave = [][]string{
 	//{"43.249.9.132:8880", "Slave1"},
 	//{"43.249.9.133:8881", "Slave2"},
-	{"127.0.0.1:8880", "Slave1"},
+	{"127.0.0.1:8882", "Slave1"},
 	{"127.0.0.1:8881", "Slave2"},
 }
 
 func main() {
+	var a []int
+	fmt.Println("第1次")
+	fmt.Scan(&utils.First)
+	a = append(a, utils.First)
+	fmt.Println("第2次")
+	fmt.Scan(&utils.Second)
+	a = append(a, utils.Second)
+	fmt.Println("第3次")
+	fmt.Scan(&utils.Third)
+	a = append(a, utils.Third)
+	by, _ := json.Marshal(a)
 	wg := sync.WaitGroup{}
 	for i, v := range slave {
 		wg.Add(1)
 		go func(i int, v []string) {
-			client, err := rpc.Dial("tcp", fmt.Sprintf("%v", v[0]))
-			//client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", port1[i]))
+			conn, err5 := net.Dial("tcp", v[0])
+			fmt.Println(v[0])
+			if err5 != nil {
+				log.Fatal(err5)
+			}
+			buf := make([]byte, 1024)
 
-			if err != nil {
-				log.Fatal("dialing : ", err)
+			fmt.Println("连接服务器成功。。。")
+			for {
+				//var i string
+				//_, _ = fmt.Scan(&i)
+				_, err5 = conn.Write(by)
+				if err5 != nil {
+					fmt.Println(err5)
+				}
+				n, err5 := conn.Read(buf)
+				if err5 != nil {
+					fmt.Println(err5)
+				}
+				fmt.Println(string(buf[:n]))
+				break
 			}
-			var reply string
-			//fmt.Println(fmt.Sprintf("%vService.%v", service[i], service[i]))
-			err = client.Call(fmt.Sprintf("%vService.%v", v[1], v[1]),
-				fmt.Sprintf("%v", v[1]), &reply)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err1 := client.Close()
-			if err1 != nil {
-				fmt.Println(err1)
-			}
-			fmt.Printf("slave[\033[34m%v\033[0m]压测结果：%v\n", v[0], reply)
+
+			//client, err := rpc.Dial("tcp", fmt.Sprintf("%v", v[0]))
+			////client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", port1[i]))
+			//
+			//if err != nil {
+			//	log.Fatal("dialing : ", err)
+			//}
+			//var reply string
+			////fmt.Println(fmt.Sprintf("%vService.%v", service[i], service[i]))
+			//err = client.Call(fmt.Sprintf("%vService.%v", v[1], v[1]),
+			//	fmt.Sprintf("%v", v[1]), &reply)
+			//if err != nil {
+			//	log.Fatal(err)
+			//}
+			//err1 := client.Close()
+			//if err1 != nil {
+			//	fmt.Println(err1)
+			//}
+			//fmt.Printf("slave[\033[34m%v\033[0m]压测结果：%v\n", v[0], reply)
 			defer wg.Done()
 		}(i, v)
 	}
