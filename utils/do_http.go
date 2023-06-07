@@ -33,6 +33,7 @@ var sucNum int64
 var failNum int64
 var useTime int64
 var avgSize int64
+var total int
 
 func avgResTime(timeList []int) float64 {
 	sum := 0
@@ -46,7 +47,7 @@ func avgResTime(timeList []int) float64 {
 	return float64(sum) / float64(len(timeList))
 }
 func qps() float64 {
-	return num / (avgResTime(resTimeList) / 1000)
+	return float64(total) / (avgResTime(resTimeList) / 1000)
 }
 func maxRespTime(timeList []int) float64 {
 	max := timeList[0]
@@ -105,13 +106,10 @@ func execute(i int, times int64) {
 	st = time.Now().UnixMilli()
 	for true {
 		res := SendPost(reqUrl, reqData, headers["t"])
-		//rTimeChan <- int(End - Start)
-		//fmt.Println(int(End - Start))
 		Times := int64(End)
-		fmt.Println(Times / 1000000)
-		fmt.Println(End)
-		rTimeChan <- int(Times / 1000000)
-		log.Printf("第%d个协程返回：\n", i)
+		fmt.Println("请求耗时：", End)
+		rTimeChan <- int(Times / 1e6)
+		log.Printf("第%d个协程返回：%v\n", i, res["code"])
 		if res["msg"].(string) == `请求成功` && res["code"].(float64) == 10000 {
 			atomic.AddInt64(&sucNum, 1)
 		} else {
@@ -191,24 +189,22 @@ func printTable(num int) string {
 }
 
 func Do(c []int) string {
-	total := 0
-	for _, v := range c {
+	total = 0
+	for i, v := range c {
+		fmt.Printf("5秒后进行第 %d 轮并发,并发数为：%d", i+1, v)
+		<-time.After(5 * time.Second)
 		run(v, 2)
 		total += v
 	}
-	//run(2, 2)
-	//fmt.Println("---------------------------------------------------------")
-	//<-time.After(3 * time.Second)
-	//run(3, 2)
-	//fmt.Println("---------------------------------------------------------")
-	//<-time.After(3 * time.Second)
-	//run(4, 2)
-	//fmt.Println("---------------------------------------------------------")
 	close(rTimeChan)
 	for ch := range rTimeChan {
-		resTimeList = append(resTimeList, ch)
+		if _, ok := <-rTimeChan; !ok {
+			fmt.Println("通道未关闭")
+			close(rTimeChan)
+			resTimeList = append(resTimeList, ch)
+		} else {
+			resTimeList = append(resTimeList, ch)
+		}
 	}
-	fmt.Println(resTimeList)
-	fmt.Println(len(resTimeList))
 	return printTable(total)
 }

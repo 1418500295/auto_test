@@ -22,14 +22,13 @@ func main() {
 	if err5 != nil {
 		fmt.Println(err5)
 	}
-	fmt.Println("服务端等待客户端连接中...")
+	fmt.Printf("服务已启动于: \033[34m%v\033[0m\n", listen.Addr().String())
 	buf := make([]byte, 1024)
 	for {
 		con, err5 := listen.Accept()
 		if err5 != nil {
 			fmt.Println(err5)
 		}
-		//Do()
 		n, err5 := con.Read(buf)
 		if err5 != nil {
 			fmt.Println(err5)
@@ -59,4 +58,5 @@ func main() {
 	//	log.Fatal("Accept error:", err)
 	//}
 	//rpc.ServeConn(conn)
+	_, _ = fmt.Scanf("h")
 }

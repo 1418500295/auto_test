@@ -22,13 +22,13 @@ var slave = [][]string{
 
 func main() {
 	var a []int
-	fmt.Println("第1次")
+	fmt.Println("第1轮并发数：")
 	fmt.Scan(&utils.First)
 	a = append(a, utils.First)
-	fmt.Println("第2次")
+	fmt.Println("第2轮并发数")
 	fmt.Scan(&utils.Second)
 	a = append(a, utils.Second)
-	fmt.Println("第3次")
+	fmt.Println("第3轮并发数")
 	fmt.Scan(&utils.Third)
 	a = append(a, utils.Third)
 	by, _ := json.Marshal(a)
@@ -42,7 +42,6 @@ func main() {
 				log.Fatal(err5)
 			}
 			buf := make([]byte, 1024)
-
 			fmt.Println("连接服务器成功。。。")
 			for {
 				//var i string
@@ -55,7 +54,7 @@ func main() {
 				if err5 != nil {
 					fmt.Println(err5)
 				}
-				fmt.Println(string(buf[:n]))
+				log.Printf("slave[\033[32m%v\033[0m]压测结果:%v \n", v[0], string(buf[:n]))
 				break
 			}
 
@@ -81,4 +80,5 @@ func main() {
 		}(i, v)
 	}
 	wg.Wait()
+	_, _ = fmt.Scanf("h")
 }
