@@ -11,39 +11,37 @@ import (
 //
 //}
 //
-//func (s *Slave2Service) Slave2(request string, reply *string) error { //为hello结构体绑定hello方法
-//	*reply = utils.Do() //拼接字符串
+//func (s *Slave2Service) Slave2(request string, reply *string) error {
+//	*reply = utils.Do() //将slave压测数据返回给mater
 //	return nil          //返回空值
 //
 //}
 
 func main() {
-	listen, err5 := net.Listen("tcp", "127.0.0.1:8881")
-	if err5 != nil {
-		fmt.Println(err5)
+	lister, err := net.Listen("tcp", "127.0.0.1:8882")
+	if err != nil {
+		fmt.Println("listen failed error: ", err)
 	}
-	fmt.Printf("服务已启动于: \033[34m%v\033[0m\n", listen.Addr().String())
+	fmt.Printf("server start on : \033[34m%v\033[0m\n", lister.Addr().String())
 	buf := make([]byte, 1024)
 	for {
-		con, err5 := listen.Accept()
-		if err5 != nil {
-			fmt.Println(err5)
+		con, err1 := lister.Accept()
+		if err1 != nil {
+			fmt.Println("accept fail error: ", err1)
 		}
-		n, err5 := con.Read(buf)
-		if err5 != nil {
-			fmt.Println(err5)
+		n, err2 := con.Read(buf)
+		if err2 != nil {
+			fmt.Println("read from master error: ", err2)
 		}
-		fmt.Println(string(buf[:n]))
-		var c []int
-		err := json.Unmarshal(buf[:n], &c)
-		if err != nil {
-			fmt.Println(err)
+		var concurrencySlice []int
+		err3 := json.Unmarshal(buf[:n], &concurrencySlice)
+		if err3 != nil {
+			fmt.Println("data covert error: ", err3)
 		}
-		ms := utils.Do(c)
+		ms := utils.ExecScript(concurrencySlice)
 		//var in string
 		//_, _ = fmt.Scan(&in)
-
-		con.Write([]byte(ms))
+		_, _ = con.Write([]byte(ms))
 		break
 	}
 	//rpc.RegisterName("Slave2Service", new(Slave2Service))

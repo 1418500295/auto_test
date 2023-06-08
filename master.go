@@ -9,10 +9,7 @@ import (
 	"sync"
 )
 
-//var host = []string{"43.249.9.132", "43.249.9.133"}
-//var service = []string{"Slave1", "Slave2"}
-//var port1 = []int{8880, 8881}
-
+//用于执行脚本的slave机器
 var slave = [][]string{
 	//{"43.249.9.132:8880", "Slave1"},
 	//{"43.249.9.133:8881", "Slave2"},
@@ -21,38 +18,38 @@ var slave = [][]string{
 }
 
 func main() {
-	var a []int
+	var countSlice []int
 	fmt.Println("第1轮并发数：")
-	fmt.Scan(&utils.First)
-	a = append(a, utils.First)
+	_, _ = fmt.Scan(&utils.First)
+	countSlice = append(countSlice, utils.First)
 	fmt.Println("第2轮并发数")
-	fmt.Scan(&utils.Second)
-	a = append(a, utils.Second)
+	_, _ = fmt.Scan(&utils.Second)
+	countSlice = append(countSlice, utils.Second)
 	fmt.Println("第3轮并发数")
-	fmt.Scan(&utils.Third)
-	a = append(a, utils.Third)
-	by, _ := json.Marshal(a)
+	_, _ = fmt.Scan(&utils.Third)
+	countSlice = append(countSlice, utils.Third)
+	by, _ := json.Marshal(countSlice)
 	wg := sync.WaitGroup{}
 	for i, v := range slave {
 		wg.Add(1)
 		go func(i int, v []string) {
-			conn, err5 := net.Dial("tcp", v[0])
+			conn, err1 := net.Dial("tcp", v[0])
 			fmt.Println(v[0])
-			if err5 != nil {
-				log.Fatal(err5)
+			if err1 != nil {
+				log.Fatal("connect fail error: ", err1)
 			}
-			buf := make([]byte, 1024)
 			fmt.Println("连接服务器成功。。。")
+			buf := make([]byte, 1024)
 			for {
 				//var i string
 				//_, _ = fmt.Scan(&i)
-				_, err5 = conn.Write(by)
-				if err5 != nil {
-					fmt.Println(err5)
+				_, err2 := conn.Write(by)
+				if err2 != nil {
+					fmt.Println("write data error: ", err2)
 				}
-				n, err5 := conn.Read(buf)
-				if err5 != nil {
-					fmt.Println(err5)
+				n, err3 := conn.Read(buf)
+				if err3 != nil {
+					fmt.Println("read data from slave error: ", err3)
 				}
 				log.Printf("slave[\033[32m%v\033[0m]压测结果:%v \n", v[0], string(buf[:n]))
 				break

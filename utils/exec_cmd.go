@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,8 +22,7 @@ const num = 5
 var et int64
 var st int64
 
-// var token3 = "eyJhbGc"
-var reqUrl = ""
+var reqUrl = "h"
 var resTime int64
 var chanResTime chan int64
 var resTimeList []int
@@ -33,7 +31,8 @@ var sucNum int64
 var failNum int64
 var useTime int64
 var avgSize int64
-var total int
+var totalConcurrency int
+var lock = sync.Mutex{} //定义互斥锁
 
 func avgResTime(timeList []int) float64 {
 	sum := 0
@@ -47,7 +46,7 @@ func avgResTime(timeList []int) float64 {
 	return float64(sum) / float64(len(timeList))
 }
 func qps() float64 {
-	return float64(total) / (avgResTime(resTimeList) / 1000)
+	return float64(totalConcurrency) / (avgResTime(resTimeList) / 1000)
 }
 func maxRespTime(timeList []int) float64 {
 	max := timeList[0]
@@ -86,13 +85,11 @@ var headers = map[string]string{
 	"t": "",
 }
 
-func getData() *bytes.Reader {
-	dataBy, _ := json.Marshal(reqData)
-	reader := bytes.NewReader(dataBy)
-	return reader
-}
-
-var lock = sync.Mutex{}
+//func getData() *bytes.Reader {
+//	dataBy, _ := json.Marshal(reqData)
+//	reader := bytes.NewReader(dataBy)
+//	return reader
+//}
 
 func execute(i int, times int64) {
 	defer func() {
@@ -108,10 +105,10 @@ func execute(i int, times int64) {
 		res := SendPost(reqUrl, reqData, headers["t"])
 		Times := int64(End)
 		fmt.Println("请求耗时：", End)
-		rTimeChan <- int(Times / 1e6)
+		rTimeChan <- int(Times / 1e6) //并发时安全写入数据
 		log.Printf("第%d个协程返回：%v\n", i, res["code"])
 		if res["msg"].(string) == `请求成功` && res["code"].(float64) == 10000 {
-			atomic.AddInt64(&sucNum, 1)
+			atomic.AddInt64(&sucNum, 1) //原子操作，保证并发时数据递增的安全性
 		} else {
 			atomic.AddInt64(&failNum, 1)
 		}
@@ -124,7 +121,7 @@ func execute(i int, times int64) {
 }
 
 func run(num int, executeTimes int64) {
-	defer func() {
+	defer func() { //进行详细的异常捕获
 		if err5 := recover(); err5 != nil {
 			const size = 64 << 10
 			buf := make([]byte, size)
@@ -134,12 +131,12 @@ func run(num int, executeTimes int64) {
 	}()
 	barrier := cyclicbarrier.New(num)
 	wg := sync.WaitGroup{}
-	wg.Add(num)
-	p, _ := ants.NewPool(num)
+	pool, _ := ants.NewPool(num)
 	for i := 0; i < num; i++ {
 		c := i
-		err := p.Submit(func() {
-			err5 := barrier.Await(context.Background()) //同步集合点
+		wg.Add(1)
+		err := pool.Submit(func() {
+			err5 := barrier.Await(context.Background()) //集合点同步
 			if err5 != nil {
 				fmt.Println("集合点同步异常:", err5)
 			}
@@ -150,9 +147,10 @@ func run(num int, executeTimes int64) {
 			return
 		}
 	}
-	wg.Wait()
-	defer ants.Release()
-
+	wg.Wait() //主线程等待子线程执行完毕，收集数据
+	defer func() {
+		_ = pool.Release()
+	}()
 }
 
 func printTable(num int) string {
@@ -163,7 +161,7 @@ func printTable(num int) string {
 	}
 	var result = make(map[string]interface{})
 	useTime = et - st
-	table.AddRow([]string{fmt.Sprintf("%.1f", float64(useTime/1000)),
+	err := table.AddRow([]string{fmt.Sprintf("%.1f", float64(useTime/1000)),
 		strconv.Itoa(num), strconv.FormatInt(sucNum, 10),
 		strconv.FormatInt(failNum, 10),
 		fmt.Sprintf("%.3f", avgResTime(resTimeList)/1000),
@@ -173,6 +171,9 @@ func printTable(num int) string {
 		fmt.Sprintf("%.3f", minRespTime(resTimeList)),
 		fmt.Sprintf("%.3f", qps()),
 	})
+	if err != nil {
+		fmt.Println(err)
+	}
 	result["耗时"] = fmt.Sprintf("%.1f", float64(useTime/1000))
 	result["并发数"] = strconv.Itoa(num)
 	result["成功请求数"] = strconv.FormatInt(sucNum, 10)
@@ -188,23 +189,17 @@ func printTable(num int) string {
 	return string(by)
 }
 
-func Do(c []int) string {
-	total = 0
-	for i, v := range c {
-		fmt.Printf("5秒后进行第 %d 轮并发,并发数为：%d", i+1, v)
+func ExecScript(concurrencySlice []int) string {
+	totalConcurrency = 0
+	for i, concurrency := range concurrencySlice {
+		fmt.Printf("5秒后进行第 %d 轮并发,并发数为：%d\n", i+1, concurrency)
 		<-time.After(5 * time.Second)
-		run(v, 2)
-		total += v
+		run(concurrency, 2)
+		totalConcurrency += concurrency
 	}
-	close(rTimeChan)
+	close(rTimeChan) //关闭通道
 	for ch := range rTimeChan {
-		if _, ok := <-rTimeChan; !ok {
-			fmt.Println("通道未关闭")
-			close(rTimeChan)
-			resTimeList = append(resTimeList, ch)
-		} else {
-			resTimeList = append(resTimeList, ch)
-		}
+		resTimeList = append(resTimeList, ch)
 	}
-	return printTable(total)
+	return printTable(totalConcurrency)
 }
