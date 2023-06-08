@@ -22,7 +22,7 @@ const num = 5
 var et int64
 var st int64
 
-var reqUrl = "h"
+var reqUrl = ""
 var resTime int64
 var chanResTime chan int64
 var resTimeList []int
@@ -106,7 +106,7 @@ func execute(i int, times int64) {
 		Times := int64(End)
 		fmt.Println("请求耗时：", End)
 		rTimeChan <- int(Times / 1e6) //并发时安全写入数据
-		log.Printf("第%d个协程返回：%v\n", i, res["code"])
+		log.Printf("第%d个协程返回：%v\n", i, res)
 		if res["msg"].(string) == `请求成功` && res["code"].(float64) == 10000 {
 			atomic.AddInt64(&sucNum, 1) //原子操作，保证并发时数据递增的安全性
 		} else {

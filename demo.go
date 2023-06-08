@@ -1,9 +1,5 @@
 package main
 
-import (
-	"auto_test/utils"
-)
-
 var reLi []map[string]string
 
 //var err5 error
@@ -29,7 +25,6 @@ var reLi []map[string]string
 
 func main() {
 
-	utils.Do()
 	//刚开始先写入一条数据
 	//f, _ := os.OpenFile("./a.json", os.O_WRONLY, 0666)
 	//data := GetToken()

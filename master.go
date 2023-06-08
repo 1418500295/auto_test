@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-//用于执行脚本的slave机器
+// 用于执行脚本的slave机器
 var slave = [][]string{
 	//{"43.249.9.132:8880", "Slave1"},
 	//{"43.249.9.133:8881", "Slave2"},
@@ -34,11 +34,11 @@ func main() {
 		wg.Add(1)
 		go func(i int, v []string) {
 			conn, err1 := net.Dial("tcp", v[0])
-			fmt.Println(v[0])
+			fmt.Println("slave机器: ", v[0])
 			if err1 != nil {
 				log.Fatal("connect fail error: ", err1)
 			}
-			fmt.Println("连接服务器成功。。。")
+			fmt.Println("master connect slave success")
 			buf := make([]byte, 1024)
 			for {
 				//var i string
@@ -51,10 +51,10 @@ func main() {
 				if err3 != nil {
 					fmt.Println("read data from slave error: ", err3)
 				}
-				log.Printf("slave[\033[32m%v\033[0m]压测结果:%v \n", v[0], string(buf[:n]))
+				log.Printf("slave[\033[35m%v\033[0m]压测结果:%v \n", v[0], string(buf[:n]))
 				break
 			}
-
+			_, _ = fmt.Scanf("h")
 			//client, err := rpc.Dial("tcp", fmt.Sprintf("%v", v[0]))
 			////client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", port1[i]))
 			//
@@ -77,5 +77,4 @@ func main() {
 		}(i, v)
 	}
 	wg.Wait()
-	_, _ = fmt.Scanf("h")
 }

@@ -39,6 +39,7 @@ func main() {
 		if err3 != nil {
 			fmt.Println("data covert error: ", err3)
 		}
+		fmt.Println(concurrencySlice)
 		ms := utils.ExecScript(concurrencySlice)
 		//var in string
 		//_, _ = fmt.Scan(&in)
